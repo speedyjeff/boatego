@@ -1,4 +1,6 @@
-﻿using System;
+﻿using engine.Common;
+using engine.Winforms;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -14,7 +16,20 @@ namespace BoatEgo
     {
         public BoatEgo()
         {
+
             InitializeComponent();
+
+            Board = new BoatEgoBoard(500, 600)
+            {
+                Width = 600,
+                Height = 500,
+                PlayOpenFace = true
+            };
+            this.Controls.Add(Board);
         }
+
+        #region private
+        private BoatEgoBoard Board;        
+        #endregion
     }
 }

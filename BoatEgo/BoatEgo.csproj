@@ -52,6 +52,15 @@
     <Compile Include="BoatEgo.Designer.cs">
       <DependentUpon>BoatEgo.cs</DependentUpon>
     </Compile>
+    <Compile Include="BoatEgoBoard.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="BoatEgoBoard.Designer.cs">
+      <DependentUpon>BoatEgoBoard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="BoatEgoBoardView.cs" />
+    <Compile Include="Computer.cs" />
+    <Compile Include="IAway.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -62,6 +71,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -85,6 +95,78 @@
       <Project>{c031d3fa-2ec9-423a-a04d-3b176c141577}</Project>
       <Name>engine.Winforms</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\floaty.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\bomb.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\chest.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\diver.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\duck.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\rov.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\rowboat.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\sailboat.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\bluebase.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\redbase.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\bluepiece.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\redpiece.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\irconclad.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\submarine.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\shark.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\turtle.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\squid.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\border.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\wavs1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\waves1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\waves2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\waves3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\island.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\ironclad.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
