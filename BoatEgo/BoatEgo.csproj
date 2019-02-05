@@ -52,6 +52,7 @@
     <Compile Include="BoatEgo.Designer.cs">
       <DependentUpon>BoatEgo.cs</DependentUpon>
     </Compile>
+    <Compile Include="BoatEgoBoard.cs" />
     <Compile Include="BoatEgoBoardUI.cs">
       <SubType>UserControl</SubType>
     </Compile>
