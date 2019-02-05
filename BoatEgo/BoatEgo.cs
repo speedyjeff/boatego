@@ -19,7 +19,7 @@ namespace BoatEgo
 
             InitializeComponent();
 
-            Board = new BoatEgoBoard(500, 600)
+            Board = new BoatEgoBoardUI(500, 600)
             {
                 Width = 600,
                 Height = 500,
@@ -29,7 +29,7 @@ namespace BoatEgo
         }
 
         #region private
-        private BoatEgoBoard Board;        
+        private BoatEgoBoardUI Board;        
         #endregion
     }
 }

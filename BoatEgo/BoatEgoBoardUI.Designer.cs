@@ -1,6 +1,6 @@
 ﻿namespace BoatEgo
 {
-    partial class BoatEgoBoard
+    partial class BoatEgoBoardUI
     {
         /// <summary> 
         /// Required designer variable.

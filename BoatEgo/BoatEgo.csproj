@@ -52,11 +52,11 @@
     <Compile Include="BoatEgo.Designer.cs">
       <DependentUpon>BoatEgo.cs</DependentUpon>
     </Compile>
-    <Compile Include="BoatEgoBoard.cs">
+    <Compile Include="BoatEgoBoardUI.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="BoatEgoBoard.Designer.cs">
-      <DependentUpon>BoatEgoBoard.cs</DependentUpon>
+    <Compile Include="BoatEgoBoardUI.Designer.cs">
+      <DependentUpon>BoatEgoBoardUI.cs</DependentUpon>
     </Compile>
     <Compile Include="BoatEgoBoardView.cs" />
     <Compile Include="Computer.cs" />

@@ -17,15 +17,15 @@ namespace BoatEgo
         public int Col;
     }
 
-    public partial class BoatEgoBoard : UserControl
+    public partial class BoatEgoBoardUI : UserControl
     {
-        public BoatEgoBoard()
+        public BoatEgoBoardUI()
         {
             InitializeComponent();
             InitializeBoard(Width, Height);
         }
 
-        public BoatEgoBoard(int width, int height)
+        public BoatEgoBoardUI(int width, int height)
         {
             InitializeComponent();
             InitializeBoard(width, height);
