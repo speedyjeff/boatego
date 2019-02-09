@@ -37,7 +37,16 @@ namespace BoatEgo
         private IImage BorderImage;
         private IImage IslandImage;
         private IImage EdgeImage;
-        private IImage ScrollImage;
+        private IImage[] ScrollImages;
+        private IImage WinImage;
+        private IImage LostImage;
+
+        // overlay tracking
+        private string OPreviousText = "";
+        private bool OHighlightAwayPieces = false;
+        private CellState OOpponentMoveFrom = default(CellState);
+        private CellState OPlayerMoveFrom = default(CellState);
+        private List<Tuple<bool, CellState>> OBattles = new List<Tuple<bool,CellState>>();
 
         //
         // Init
@@ -46,8 +55,8 @@ namespace BoatEgo
         {
             // init control
             DoubleBuffered = true;
-            Height = width;
-            Width = height;
+            Height = height;
+            Width = width;
 
             // init
             Rand = new Random();
@@ -82,7 +91,13 @@ namespace BoatEgo
             BorderImage = images["border"];
             IslandImage = images["island"];
             EdgeImage = images["edge"];
-            ScrollImage = images["scroll"];
+            ScrollImages = new IImage[]
+                {
+                    images["scroll"],
+                    images["scrolllong"]
+                };
+            WinImage = images["win"];
+            LostImage = images["lost"];
 
             // waves
             WavesImages = new IImage[]
@@ -122,8 +137,6 @@ namespace BoatEgo
             Game = new BoatEgoBoard();
             Game.OnCellUpdate += Game_OnCellUpdate;
             Game.OnNotify += Game_OnNotify;
-            Game.OnNotifyInfo += Game_OnNotifyInfo;
-            Game.OnNotifyChange += Game_OnNotifyChange;
 
             // paint the full board
             for (int r = 0; r < BoatEgoBoard.Rows; r++)
@@ -152,33 +165,103 @@ namespace BoatEgo
             UpdateCell(cell);
         }
 
-        private void Game_OnNotify(NotifyReason reason)
+        private void Game_OnNotify(NotifyReason reason, CellState[] cells)
         {
-            AddOverlay(reason.ToString());
-        }
+            System.Diagnostics.Debug.WriteLine(reason);
 
-        private void Game_OnNotifyChange(NotifyReason reason, CellState from, CellState to)
-        {
-            AddOverlay(string.Format("{0} [{1},{2},{3}x{4}] [{5},{6},{7}x{8}]",
-                reason.ToString(),
-                from.Player,
-                from.Piece,
-                from.Row,
-                from.Col,
-                to.Player,
-                to.Piece,
-                to.Row,
-                to.Col));
-        }
+            switch (reason)
+            {
+                // game setup
+                case NotifyReason.PiecePlaced:
+                    if (cells == null || cells.Length != 1) throw new Exception("Invalid cells sent to notify");
+                    AddOverlay(string.Format("Placed a {0}", cells[0].Piece.ToString().Replace("_", "")));
+                    break;
+                case NotifyReason.InvalidCellSelected:
+                    AddOverlay("Cannot place a piece on this cell, try again");
+                    break;
 
-        private void Game_OnNotifyInfo(NotifyReason reason, CellState cell)
-        {
-            AddOverlay(string.Format("{0} [{1},{2},{3}x{4}]",
-                reason.ToString(),
-                cell.Player,
-                cell.Piece,
-                cell.Row,
-                cell.Col));
+                // choose an opponent's piece to win the battle
+                case NotifyReason.PickOpponent:
+                    OHighlightAwayPieces = true;
+                    AddOverlay("Choose an opponent's piece. If you guess correctly you win the battle.");
+                    break;
+
+                // battle
+                case NotifyReason.BattleLost:
+                case NotifyReason.BattleWon:
+                case NotifyReason.BattleTied:
+                    if (cells == null || cells.Length != 2) throw new Exception("Invalid cells sent to notify");
+
+                    // track human or opponenet move
+                    if (cells[0].Player == Player.Red) OPlayerMoveFrom = cells[0];
+                    else OOpponentMoveFrom = cells[0];
+
+                    // clear the battles if human
+                    if (cells[0].Player == Player.Red) OBattles.Clear();
+
+                    // indicate that a cell should be marked for a battle
+                    OBattles.Add(new Tuple<bool,CellState>(reason == NotifyReason.BattleWon, cells[1] ));
+
+                    // turn off highlighting if needed to guess
+                    OHighlightAwayPieces = false;
+
+                    // update, but do not change the current text
+                    AddOverlay(OPreviousText);
+                    break;
+
+                // piece moved
+                case NotifyReason.PieceMove:
+                    if (cells == null || cells.Length != 2) throw new Exception("Invalid cells sent to notify");
+                    // track human or opponenet move
+                    if (cells[0].Player == Player.Red) OPlayerMoveFrom = cells[0];
+                    else OOpponentMoveFrom = cells[0];
+
+                    // clear the battles if human
+                    if (cells[0].Player == Player.Red) OBattles.Clear();
+
+                    // update, but do not change the current text
+                    AddOverlay(OPreviousText);
+                    break;
+
+                // indicate that it is time to pick a piece to play
+                case NotifyReason.YourTurn:
+                    // todo
+                    AddOverlay("It is your turn");
+                    break;
+
+                case NotifyReason.InvalidMove:
+                    AddOverlay("That move is invalid. Choose another piece.");
+                    break;
+
+                // check for the win
+                case NotifyReason.StaleMate:
+                    AddOverlay("Stale mate. No winner.");
+                    break;
+
+                case NotifyReason.PlayerWins:
+                    AddOverlay("You win!");
+                    break;
+
+                case NotifyReason.OpponentWins:
+                    AddOverlay("Opponent wins.");
+                    break;
+
+                case NotifyReason.GameOver:
+                    AddOverlay(OPreviousText);
+                    break;
+
+                // nothing
+                case NotifyReason.AllPiecesAreInPlay:
+                case NotifyReason.CorrectlyGuessedPiece:
+                case NotifyReason.IncorrectlyGuessedPiece:
+                case NotifyReason.ChooseOpponent:
+                case NotifyReason.PlayerPiecesSet:
+                case NotifyReason.TheirTurn:
+                    break;
+
+                default:
+                    throw new Exception("Inavlid Notify reason : " + reason);
+            }
         }
 
         //
@@ -190,25 +273,64 @@ namespace BoatEgo
             // determine where the best place is to put the message
             var x = 0;
             var y = 0;
-            if (Game.Phase != GamePhase.Initializing)
-            {
-                x = Board.CellWidth * 3;
-                y = Board.CellHeight * 3;
-            }
-
-            // break text into lines that will be presented on the scroll
+            var xdelta = 0;
+            var ydelta = 0;
+            var width = 0;
+            var height = 0;
+            IImage background = null;
             var lines = new List<string>();
-            var linesize = 17;
-            var start = 0;
-            do
-            {
-                var length = linesize;
-                if (start + length > text.Length) length = text.Length - start;
-                lines.Add(text.Substring(start, length));
-                start += linesize;
-            }
-            while (start < text.Length);
 
+            // determine where to put messages
+            if (Game.Phase == GamePhase.Initializing)
+            {
+                background = ScrollImages[0];
+                x = Board.CellWidth * 2;
+                y = Board.CellHeight;
+                width = Board.CellWidth * 4;
+                height = Board.CellHeight * 4;
+                xdelta = 30;
+                ydelta = 55;
+
+                // break text into lines
+                var linesize = 17;
+                var start = 0;
+                do
+                {
+                    var length = start + linesize > text.Length ? text.Length - start: linesize;
+                    if (start + length < text.Length)
+                    {
+                        // walk back to the last whitespace
+                        while (!char.IsWhiteSpace(text[start + length]))
+                        {
+                            length--;
+                            if (length == 0)
+                            {
+                                // give up
+                                length = linesize;
+                                break;
+                            }
+                        }
+                    }
+                    lines.Add(text.Substring(start, length));
+                    start += length;
+                }
+                while (start < text.Length);
+            }
+            else
+            {
+                background = ScrollImages[1];
+                x = Board.CellWidth;
+                y = Board.CellHeight * (Board.Rows-2); // exclude borders
+                height = Board.CellHeight;
+                width = Board.CellWidth * (Board.Columns-2); // exclude border
+                xdelta = 35;
+                ydelta = 20;
+
+                // include all text
+                lines.Add(text);
+            }
+
+            // update the overlay
             Board.UpdateOverlay((img) =>
             {
                 // clear
@@ -216,18 +338,60 @@ namespace BoatEgo
                 img.MakeTransparent(RGBA.White);
 
                 // put scroll
-                img.Graphics.Image(ScrollImage, x, y, Board.CellWidth * 2, Board.CellHeight * 2);
-
-                // adjust x and y for scroll offsets
-                x += 35;
-                y += 20;
+                img.Graphics.Image(background, x, y, width, height);
 
                 // put messages
                 for (int i=0; i<lines.Count; i++)
                 {
-                    img.Graphics.Text(RGBA.Black, x, y+ (i*12), lines[i], 12);
+                    img.Graphics.Text(RGBA.Black, x + xdelta, y + ydelta + (i*18), lines[i], 12);
+                }
+
+                // highlight the previous move places
+                foreach (var cell in new CellState[] { OPlayerMoveFrom, OOpponentMoveFrom })
+                {
+                    if (!cell.Equals(default(CellState)))
+                    {
+                        img.Graphics.Rectangle(new RGBA()
+                        {
+                            R = (byte)(cell.Player == Player.Red ? 255 : 150),
+                            G = 150,
+                            B = (byte)(cell.Player == Player.Blue ? 255 : 150),
+                            A = 200
+                        },
+                            Board.CellWidth * cell.Col,
+                            Board.CellHeight * cell.Row,
+                            Board.CellWidth,
+                            Board.CellHeight,
+                            true, // fill
+                            false // no border
+                            );
+                    }
+                }
+
+                // highlight the opponenets selectable pieces
+                if (OHighlightAwayPieces)
+                {
+                    img.Graphics.Rectangle(new RGBA() { R = 255, G = 255, A = 100 }, Board.CellWidth, Board.CellHeight * 2, Board.CellWidth, Board.CellHeight * 6, true, true);
+                    img.Graphics.Rectangle(new RGBA() { R = 255, G = 255, A = 100 }, Board.Width - (Board.CellWidth*2), Board.CellHeight * 2, Board.CellWidth, Board.CellHeight * 6, true, true);
+                }
+
+                // mark the battles
+                foreach (var b in OBattles)
+                {
+                    // mark these cells as a win or loss
+                    if (b.Item1)
+                    {
+                        img.Graphics.Image(WinImage, b.Item2.Col * Board.CellWidth, b.Item2.Row * Board.CellHeight, Board.CellWidth / 5, Board.CellHeight / 5);
+                    }
+                    else
+                    {
+                        img.Graphics.Image(LostImage, ((b.Item2.Col + 1) * Board.CellWidth) - (Board.CellWidth / 5), b.Item2.Row * Board.CellHeight, Board.CellWidth / 5, Board.CellHeight / 5);
+                    }
                 }
             });
+
+            // retain the text from this overlap
+            OPreviousText = text;
         }
 
         private void UpdateCell(CellState cell)
@@ -255,8 +419,8 @@ namespace BoatEgo
                             img);
                         break;
 
-                    case State.SelectableHome:
-                    case State.SelectableAway:
+                    case State.SelectablePlayer:
+                    case State.SelectableOpponent:
                         // display piece
                         DrawPiece(cell.Player, 
                             cell.Piece, 

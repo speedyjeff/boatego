@@ -61,7 +61,7 @@
     </Compile>
     <Compile Include="BoatEgoBoardView.cs" />
     <Compile Include="Computer.cs" />
-    <Compile Include="IAway.cs" />
+    <Compile Include="IOpponent.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -168,6 +168,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="media\scroll.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\scrolllong.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\lost.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\win.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -6,18 +6,18 @@ using System.Threading.Tasks;
 
 namespace BoatEgo
 {
-    struct AwayMove
+    struct OpponentMove
     {
         public Coord From;
         public Coord To;
         public Piece Guess;
     }
 
-    interface IAway
+    interface IOpponent
     {
         BoatEgoBoardView StartingPositions(BoatEgoBoardView board);
 
-        AwayMove Move(BoatEgoBoardView view);
+        OpponentMove Move(BoatEgoBoardView view);
 
         void Feedback_OpponentMove(Coord from, Coord to);
 

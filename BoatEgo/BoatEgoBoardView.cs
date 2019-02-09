@@ -40,7 +40,7 @@ namespace BoatEgo
 
         public Dictionary<Piece, int> PieceCounts;
 
-        public IEnumerable<AwayMove> GetAvailableMoves()
+        public IEnumerable<OpponentMove> GetAvailableMoves()
         {
             for (int r = 0; r < Rows; r++)
             {
@@ -106,10 +106,10 @@ namespace BoatEgo
             public Piece Piece;
             public bool Owned;
             public bool StartingCell;
-            public List<AwayMove> Moves;
+            public List<OpponentMove> Moves;
         }
 
-        internal void PutCell(int row, int col, Piece piece, bool mine, List<AwayMove> moves)
+        internal void PutCell(int row, int col, Piece piece, bool mine, List<OpponentMove> moves)
         {
             if (row < 0 || row >= Rows || col < 0 || col >= Columns) throw new Exception("Invalid index for view");
 

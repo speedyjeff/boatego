@@ -15,14 +15,14 @@ namespace BoatEgo
     {
         InvalidCellSelected,
         AllPiecesAreInPlay,
-        HomePiecesSet,
+        PlayerPiecesSet,
         StaleMate,
-        HomeWins,
-        AwayWins,
+        PlayerWins,
+        OpponentWins,
         InvalidMove,
         CorrectlyGuessedPiece,
         IncorrectlyGuessedPiece,
-        PickOpponenet,
+        PickOpponent,
         GameOver,
         PieceMove,
         BattleLost,
@@ -34,7 +34,7 @@ namespace BoatEgo
         TheirTurn
     }
 
-    public enum State { Playable, Island, SelectableHome, Nothing, SelectableAway };
+    public enum State { Playable, Island, SelectablePlayer, Nothing, SelectableOpponent };
 
     public struct CellState
     {
@@ -94,8 +94,8 @@ namespace BoatEgo
             SelectablePieces = new Coord[2][]; // number of players
             SelectablePieces[(int)Player.Red] = new Coord[NumberOfPieces];
             SelectablePieces[(int)Player.Blue] = new Coord[NumberOfPieces];
-            var pieceHome = Piece.Spy;
-            var pieceAway = Piece.Spy;
+            var piecePlayer = Piece.Spy;
+            var pieceOpponent = Piece.Spy;
             for (int row = 0; row < Rows; row++)
             {
                 States[row] = new CellState[Columns];
@@ -108,29 +108,29 @@ namespace BoatEgo
                     States[row][col].Player = Player.Neutral;
                     States[row][col].Piece = Piece.Empty;
 
-                    if (States[row][col].State == State.SelectableHome)
+                    if (States[row][col].State == State.SelectablePlayer)
                     {
                         // enable the fast lookup access for selectable items
-                        SelectablePieces[(int)Player.Red][(int)pieceHome].Row = row;
-                        SelectablePieces[(int)Player.Red][(int)pieceHome].Col = col;
+                        SelectablePieces[(int)Player.Red][(int)piecePlayer].Row = row;
+                        SelectablePieces[(int)Player.Red][(int)piecePlayer].Col = col;
 
                         // set this as a selectable piece
-                        States[row][col].Piece = pieceHome;
+                        States[row][col].Piece = piecePlayer;
                         States[row][col].Player = Player.Red;
                         // advance piece for next time
-                        pieceHome = (Piece)((int)pieceHome + 1);
+                        piecePlayer = (Piece)((int)piecePlayer + 1);
                     }
-                    else if (States[row][col].State == State.SelectableAway)
+                    else if (States[row][col].State == State.SelectableOpponent)
                     {
                         // enable the fast lookup access for selectable items
-                        SelectablePieces[(int)Player.Blue][(int)pieceAway].Row = row;
-                        SelectablePieces[(int)Player.Blue][(int)pieceAway].Col = col;
+                        SelectablePieces[(int)Player.Blue][(int)pieceOpponent].Row = row;
+                        SelectablePieces[(int)Player.Blue][(int)pieceOpponent].Col = col;
 
                         // set this as a selectable piece
-                        States[row][col].Piece = pieceAway;
+                        States[row][col].Piece = pieceOpponent;
                         States[row][col].Player = Player.Blue;
                         // advance piece for next time
-                        pieceAway = (Piece)((int)pieceAway + 1);
+                        pieceOpponent = (Piece)((int)pieceOpponent + 1);
                     }
                 }
             }
@@ -143,15 +143,13 @@ namespace BoatEgo
 
         public Player Player { get; private set; }
 
-        public const int Rows = 10;
-        public const int Columns = 12;
+        public const int Rows = 12;
+        public const int Columns = 14;
 
         public const int NumberOfPieces = 13;
 
         public event Action<CellState> OnCellUpdate;
-        public event Action<NotifyReason> OnNotify;
-        public event Action<NotifyReason, CellState> OnNotifyInfo;
-        public event Action<NotifyReason, CellState, CellState> OnNotifyChange;
+        public event Action<NotifyReason, CellState[]> OnNotify;
 
         public GamePhase Phase
         {
@@ -171,7 +169,7 @@ namespace BoatEgo
                 {
                     // user click
                     case GameState.Init_Selected:
-                    case GameState.Play_HomePlay:
+                    case GameState.Play_PlayerPlay:
                     case GameState.Play_PickOpponent:
                         MainGameLoop(row, col);
                         break;
@@ -205,12 +203,12 @@ namespace BoatEgo
         private const int BoardRows = 8;
         private const int BoardColumns = 10;
 
-        private static Coord HomeStarting = new Coord() { Row = 5, Col = 1 };
-        private static Coord AwayStarting = new Coord() { Row = 0, Col = 1 };
-        private static Coord BoardStarting = AwayStarting;
+        private static Coord PlayerStarting = new Coord() { Row = 6, Col = 2 };
+        private static Coord OpponentStarting = new Coord() { Row = 1, Col = 2 };
+        private static Coord BoardStarting = OpponentStarting;
 
         // computer
-        private IAway Computer;
+        private IOpponent Computer;
 
         // current state
         private CellState SelectedCell;
@@ -231,7 +229,7 @@ namespace BoatEgo
         //     |  /\-------|
         //     | 
         //    \/
-        //   Pre_WaitForAwaySetup
+        //   Pre_WaitForOpponentSetup
         //      |
         //     \/
         //   Pre_StartGame --------------------------------|
@@ -242,7 +240,7 @@ namespace BoatEgo
         //      |     /\     /\                          | |
         //      |      |      |                          | |
         //     \/      |      |                          | |
-        //   Play_HomePlay   Play_AwayPlay               | |
+        // Play_PlayerPlay   Play_OpponentPlay           | |
         //     /\      |      |    /\                    | |
         //      |     \/     \/     |                    | |
         //      |     Play_Move     |                    | |
@@ -258,12 +256,12 @@ namespace BoatEgo
         {
             // Initializting
             Init_Selected,
-            Pre_WaitForAwaySetup,
+            Pre_WaitForOpponentSetup,
             Pre_StartGame,
 
             // Inprogress
-            Play_HomePlay,
-            Play_AwayPlay,
+            Play_PlayerPlay,
+            Play_OpponentPlay,
             Play_Battle,
             Play_Move,
             Play_PickOpponent,
@@ -279,12 +277,12 @@ namespace BoatEgo
             switch (CurrentState)
             {
                 case GameState.Init_Selected:
-                case GameState.Pre_WaitForAwaySetup:
+                case GameState.Pre_WaitForOpponentSetup:
                 case GameState.Pre_StartGame:
                     return GamePhase.Initializing;
 
-                case GameState.Play_HomePlay:
-                case GameState.Play_AwayPlay:
+                case GameState.Play_PlayerPlay:
+                case GameState.Play_OpponentPlay:
                 case GameState.Play_Battle:
                 case GameState.Play_PickOpponent:
                 case GameState.Play_Move:
@@ -308,30 +306,30 @@ namespace BoatEgo
                 case GameState.Init_Selected:
                     // no valid transitions into this state
                     break;
-                case GameState.Pre_WaitForAwaySetup:
+                case GameState.Pre_WaitForOpponentSetup:
                     if (CurrentState == GameState.Init_Selected) shouldChange = true;
                     break;
                 case GameState.Pre_StartGame:
-                    if (CurrentState == GameState.Pre_WaitForAwaySetup) shouldChange = true;
+                    if (CurrentState == GameState.Pre_WaitForOpponentSetup) shouldChange = true;
                     break;
-                case GameState.Play_HomePlay:
+                case GameState.Play_PlayerPlay:
                     if (CurrentState == GameState.Pre_StartGame ||
                         CurrentState == GameState.Play_EndTurn) shouldChange = true;
                     break;
-                case GameState.Play_AwayPlay:
+                case GameState.Play_OpponentPlay:
                     if (CurrentState == GameState.Play_EndTurn) shouldChange = true;
                     break;
                 case GameState.Play_Battle:
-                    if (CurrentState == GameState.Play_HomePlay ||
-                        CurrentState == GameState.Play_AwayPlay ||
+                    if (CurrentState == GameState.Play_PlayerPlay ||
+                        CurrentState == GameState.Play_OpponentPlay ||
                         CurrentState == GameState.Play_PickOpponent) shouldChange = true;
                     break;
                 case GameState.Play_PickOpponent:
                     if (CurrentState == GameState.Play_Battle) shouldChange = true;
                     break;
                 case GameState.Play_Move:
-                    if (CurrentState == GameState.Play_AwayPlay ||
-                        CurrentState == GameState.Play_HomePlay) shouldChange = true;
+                    if (CurrentState == GameState.Play_OpponentPlay ||
+                        CurrentState == GameState.Play_PlayerPlay) shouldChange = true;
                     break;
                 case GameState.Play_EndTurn:
                     if (CurrentState == GameState.Play_Move ||
@@ -383,7 +381,7 @@ namespace BoatEgo
 
                     case GameState.Init_Selected:
                         // must be clicking on a selectable
-                        if (state == State.SelectableHome)
+                        if (state == State.SelectablePlayer)
                         {
                             // unselect the last piece
                             if (IsValidCell(SelectedCell))
@@ -401,8 +399,8 @@ namespace BoatEgo
                             }
                             else
                             {
-                                OnNotifyInfo(NotifyReason.AllPiecesAreInPlay, 
-                                    new CellState() { Player = Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col });
+                                OnNotify(NotifyReason.AllPiecesAreInPlay, 
+                                    new CellState[] { new CellState() { Player = Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col } });
                             }
                         }
                         else if (state == State.Playable)
@@ -410,7 +408,8 @@ namespace BoatEgo
                             if (IsValidCell(SelectedCell))
                             {
                                 // place the piece
-                                if (IsInHomePlacementRegion(row, col))
+                                if (row >=  PlayerStarting.Row && row < (PlayerStarting.Row + GamePlayRows) &&
+                                    col >= PlayerStarting.Col && col < (PlayerStarting.Col + GamePlayCols))
                                 {
                                     // replacing an existing placement
                                     if (cell.Piece != Piece.Empty)
@@ -422,20 +421,20 @@ namespace BoatEgo
                                     if (AddPiece(SelectedCell.Piece, Player, row, col))
                                     {
                                         // piece was added
-                                        OnNotifyInfo(NotifyReason.PiecePlaced,
-                                            new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col });
+                                        OnNotify(NotifyReason.PiecePlaced,
+                                            new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col } });
 
                                         // check if all the pieces have been placed
                                         var remaining = CountRemaining(Player);
                                         if (remaining == 0)
                                         {
-                                            OnNotify(NotifyReason.HomePiecesSet);
+                                            OnNotify(NotifyReason.PlayerPiecesSet, null);
 
                                             // unhighlight this piece
                                             Unhighlight(SelectedCell);
 
                                             // we are done
-                                            ChangeState(GameState.Pre_WaitForAwaySetup);
+                                            ChangeState(GameState.Pre_WaitForOpponentSetup);
                                             applyChange = true;
                                         }
                                         else
@@ -455,36 +454,36 @@ namespace BoatEgo
                                     {
                                         throw new Exception("Not able to place the piece");
                                     }
-                                } // if inHomeRegion
+                                } // if inPlayerRegion
                                 else
                                 {
-                                    OnNotifyInfo(NotifyReason.InvalidCellSelected,
-                                        new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col });
+                                    OnNotify(NotifyReason.InvalidCellSelected,
+                                        new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col } });
                                 }
                             } // if isValid
                         } // if playable
                         else
                         {
-                            OnNotifyInfo(NotifyReason.InvalidCellSelected,
-                                new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col });
+                            OnNotify(NotifyReason.InvalidCellSelected,
+                                new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = row, Col = col } });
                         }
                         break;
 
                     //
                     // Pre-game setup
                     //
-                    case GameState.Pre_WaitForAwaySetup:
-                        // now the home pieces are set... 
+                    case GameState.Pre_WaitForOpponentSetup:
+                        // now the player pieces are set... 
 
                         // check if the computer is a computer and pass the current implementation (for use of statistics)
                         if (Computer is Computer)
                         {
-                            // send a full view of the field (including Home piece positions)
+                            // send a full view of the field (including player piece positions)
                             var fullView = GetBoardView(Player.Neutral);
                             (Computer as Computer).Feedback(fullView);
                         }
 
-                        // setup the away pieces
+                        // setup the opponent pieces
                         var startingView = GetBoardView(Player.Blue, true /*for init*/);
 
                         // get the initial piece layout ascynchronsly
@@ -494,13 +493,13 @@ namespace BoatEgo
 
                         if (!startingView.IsValid) throw new Exception("Board created by the computer is not valid");
 
-                        // apply the away field
+                        // apply the opponent field
                         for (int r = 0; r < GamePlayRows; r++)
                         {
                             for (int c = 0; c < BoardColumns; c++)
                             {
                                 // add piece
-                                AddPiece(startingView.GetPiece(r, c), Player.Blue, AwayStarting.Row + r, c + AwayStarting.Col);
+                                AddPiece(startingView.GetPiece(r, c), Player.Blue, OpponentStarting.Row + r, c + OpponentStarting.Col);
                             }
                         }
 
@@ -511,35 +510,35 @@ namespace BoatEgo
 
                     case GameState.Play_EndTurn:
                     case GameState.Pre_StartGame:
-                        // check that both home and away can move
+                        // check that both player and opponent can move
 
-                        // check the away row if they are have no moves
-                        var awayCanMove = CountPiecesThatCanMove(Player.Blue);
-                        var awayFlags = CountPiece(Player.Blue, Piece.Flag);
+                        // check the opponent row if they are have no moves
+                        var opponentCanMove = CountPiecesThatCanMove(Player.Blue);
+                        var opponentFlags = CountPiece(Player.Blue, Piece.Flag);
 
-                        // check the home row if they can move
-                        var homeCanMove = CountPiecesThatCanMove(Player.Red);
-                        var homeFlags = CountPiece(Player.Red, Piece.Flag);
+                        // check the palyer row if they can move
+                        var playerCanMove = CountPiecesThatCanMove(Player.Red);
+                        var playerFlags = CountPiece(Player.Red, Piece.Flag);
 
-                        if (awayCanMove == 0 && homeCanMove == 0)
+                        if (opponentCanMove == 0 && playerCanMove == 0)
                         {
                             // stale mate
                             ChangeState(GameState.End_GameOver);
-                            OnNotify(NotifyReason.StaleMate);
+                            OnNotify(NotifyReason.StaleMate, null);
                             applyChange = true;
                         }
-                        else if (awayCanMove == 0 || awayFlags == 0)
+                        else if (opponentCanMove == 0 || opponentFlags == 0)
                         {
-                            // Home wins
+                            // player wins
                             ChangeState(GameState.End_GameOver);
-                            OnNotify(NotifyReason.HomeWins);
+                            OnNotify(NotifyReason.PlayerWins, null);
                             applyChange = true;
                         }
-                        else if (homeCanMove == 0 || homeFlags == 0)
+                        else if (playerCanMove == 0 || playerFlags == 0)
                         {
-                            // away wins
+                            // opponent wins
                             ChangeState(GameState.End_GameOver);
-                            OnNotify(NotifyReason.AwayWins);
+                            OnNotify(NotifyReason.OpponentWins, null);
                             applyChange = true;
                         }
                         else
@@ -548,16 +547,16 @@ namespace BoatEgo
                             if (CurrentPlayer == Player.Red)
                             {
                                 CurrentPlayer = Player.Blue;
-                                ChangeState(GameState.Play_AwayPlay);
-                                OnNotify(NotifyReason.TheirTurn);
+                                ChangeState(GameState.Play_OpponentPlay);
+                                OnNotify(NotifyReason.TheirTurn, null);
                                 applyChange = true;
                             }
                             else
                             {
                                 // blue or neutral (eg. first time)
                                 CurrentPlayer = Player.Red;
-                                ChangeState(GameState.Play_HomePlay);
-                                OnNotify(NotifyReason.YourTurn);
+                                ChangeState(GameState.Play_PlayerPlay);
+                                OnNotify(NotifyReason.YourTurn, null);
                             }
                         }
 
@@ -570,7 +569,7 @@ namespace BoatEgo
                     // Player's turn
                     //
 
-                    case GameState.Play_HomePlay:
+                    case GameState.Play_PlayerPlay:
 
                         // ensure there is nothing highlighted
                         UnhighlightAll();
@@ -584,15 +583,15 @@ namespace BoatEgo
                                 if (cell.Piece != Piece.Empty)
                                 {
                                     // identify places that this piece can move
-                                    var homeMoves = GetMoves(cell);
+                                    var playerMoves = GetMoves(cell);
 
-                                    if (homeMoves != null && homeMoves.Count > 0)
+                                    if (playerMoves != null && playerMoves.Count > 0)
                                     {
                                         // select this piece
                                         SelectedCell = cell;
 
                                         // highlight
-                                        HighlightAll(homeMoves);
+                                        HighlightAll(playerMoves);
                                     }
                                 }
                             }
@@ -605,9 +604,9 @@ namespace BoatEgo
                                     // request to move this cell to this location
 
                                     // double check that this cell is valid for this cell
-                                    var homeMoves = GetMoves(SelectedCell);
+                                    var playerMoves = GetMoves(SelectedCell);
 
-                                    if (IsValidMove(cell, homeMoves))
+                                    if (IsValidMove(cell, playerMoves))
                                     {
                                         // check if this is a battle
                                         if (cell.Piece == Piece.Empty)
@@ -629,9 +628,12 @@ namespace BoatEgo
                                     }
                                     else
                                     {
-                                        OnNotifyChange(NotifyReason.InvalidMove,
+                                        OnNotify(NotifyReason.InvalidMove,
+                                            new CellState[]
+                                            {
                                             new CellState() { Player = SelectedCell.Player, Piece = SelectedCell.Piece, Row = SelectedCell.Row, Col = SelectedCell.Col },
-                                            new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col });
+                                            new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col }
+                                            });
                                     }
                                 } // if selectedCell is valid
                             } // if same player
@@ -663,9 +665,12 @@ namespace BoatEgo
                                 new Coord() { Row = SelectedCell.Row, Col = SelectedCell.Col },
                                 new Coord() { Row = cell.Row, Col = cell.Col });
                         }
-                        OnNotifyChange(NotifyReason.PieceMove,
+                        OnNotify(NotifyReason.PieceMove,
+                            new CellState[]
+                            {
                                             new CellState() { Player = SelectedCell.Player, Piece = SelectedCell.Piece, Row = SelectedCell.Row, Col = SelectedCell.Col },
-                                            new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col });
+                                            new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col }
+                            });
 
                         // remove this piece from the current location
                         var piece = SelectedCell.Piece;
@@ -693,12 +698,19 @@ namespace BoatEgo
                         // assume this is a valid move (validated elsewhere)
 
                         var fought = false;
-                        var homeWon = true;
-                        var awayWon = true;
+                        var attackerWon = true;
+                        var attackedWon = true;
 
                         if (AttackingCell.Piece == Piece._1)
                         {
-                            if (!IsValidCell(SelectedCell))
+                            if (cell.Piece == Piece.Flag)
+                            {
+                                // player wins the battle (without having to guess)
+                                fought = true;
+                                attackerWon = true;
+                                attackedWon = false;
+                            }
+                            else if (!IsValidCell(SelectedCell))
                             {
                                 // no battle occured
                                 fought = false;
@@ -709,7 +721,7 @@ namespace BoatEgo
                                 // request the user to choose a piece
                                 DestinationCell = cell; // keep the current cell
                                 ChangeState(GameState.Play_PickOpponent);
-                                OnNotify(NotifyReason.PickOpponenet);
+                                OnNotify(NotifyReason.PickOpponent, null);
                             }
                             else
                             {
@@ -719,17 +731,17 @@ namespace BoatEgo
                                 // check if the guess is accurate
                                 if (SelectedCell.Piece == cell.Piece)
                                 {
-                                    OnNotifyInfo(NotifyReason.CorrectlyGuessedPiece,
-                                        new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col });
-                                    homeWon = true;
-                                    awayWon = false;
+                                    OnNotify(NotifyReason.CorrectlyGuessedPiece,
+                                        new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col } });
+                                    attackerWon = true;
+                                    attackedWon = false;
                                 }
                                 else
                                 {
-                                    OnNotifyInfo(NotifyReason.IncorrectlyGuessedPiece,
-                                        new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col });
-                                    homeWon = false;
-                                    awayWon = true;
+                                    OnNotify(NotifyReason.IncorrectlyGuessedPiece,
+                                        new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col } });
+                                    attackerWon = false;
+                                    attackedWon = true;
                                 }
                             }
                         }
@@ -738,50 +750,48 @@ namespace BoatEgo
                             // there was a battle
                             fought = true;
 
-                            // TODO battle rules around BOMBs, Flag, Spy
-
                             // normal battle rules apply
                             if (AttackingCell.Piece == cell.Piece)
                             {
                                 // they both loss
-                                homeWon = awayWon = false;
+                                attackerWon = attackedWon = false;
                             }
                             else if (cell.Piece == Piece.Bomb)
                             {
-                                awayWon = true;
-                                homeWon = false;
+                                attackedWon = true;
+                                attackerWon = false;
                                 if (AttackingCell.Piece == Piece.BombSquad)
                                 {
-                                    homeWon = true;
-                                    awayWon = false;
+                                    attackerWon = true;
+                                    attackedWon = false;
                                 }
                             }
                             else if (cell.Piece == Piece.Flag)
                             {
-                                homeWon = true;
-                                awayWon = false;
+                                attackerWon = true;
+                                attackedWon = false;
                             }
                             else if (AttackingCell.Piece == Piece.Spy)
                             {
-                                homeWon = false;
-                                awayWon = true;
+                                attackerWon = false;
+                                attackedWon = true;
                                 if (cell.Piece == Piece._10)
                                 {
-                                    homeWon = true;
-                                    awayWon = false;
+                                    attackerWon = true;
+                                    attackedWon = false;
                                 }
                             }
                             else if (AttackingCell.Piece > cell.Piece)
                             {
-                                // home wins
-                                homeWon = true;
-                                awayWon = false;
+                                // attacker wins
+                                attackerWon = true;
+                                attackedWon = false;
                             }
                             else
                             {
-                                // away wins
-                                homeWon = false;
-                                awayWon = true;
+                                // attacked wins
+                                attackerWon = false;
+                                attackedWon = true;
                             }
                         }
 
@@ -792,30 +802,49 @@ namespace BoatEgo
                             var aPiece = AttackingCell.Piece;
                             var aPlayer = AttackingCell.Player;
 
+                            // human outcome
+                            var humanOutcome = NotifyReason.BattleTied;
+                            if (!attackedWon && !attackerWon) humanOutcome = NotifyReason.BattleTied;
+                            else if (aPlayer == Player)
+                            {
+                                // this is a human
+                                if (attackerWon) humanOutcome = NotifyReason.BattleWon;
+                                else humanOutcome = NotifyReason.BattleLost;
+                            }
+                            else
+                            {
+                                // this is the computer
+                                if (attackerWon) humanOutcome = NotifyReason.BattleLost;
+                                else humanOutcome = NotifyReason.BattleWon;
+                            }
+
                             // inform the computer of a battle
                             Computer.Feedback_Battle(
                                 new Coord() { Row = AttackingCell.Row, Col = AttackingCell.Col },
                                 new Coord() { Row = cell.Row, Col = cell.Col },
-                                awayWon ? BattleOutcome.Win :
-                                    homeWon ? BattleOutcome.Loss : BattleOutcome.Tie);
+                                humanOutcome == NotifyReason.BattleTied ? BattleOutcome.Tie :
+                                (humanOutcome == NotifyReason.BattleWon ? BattleOutcome.Loss : BattleOutcome.Win)
+                                );
 
                             // notify to the UI what happened
-                            OnNotifyChange(awayWon ? NotifyReason.BattleLost :
-                                    homeWon ? NotifyReason.BattleWon : NotifyReason.BattleTied,
+                            OnNotify(humanOutcome,
+                                new CellState[]
+                                {
                                     new CellState() { Player = AttackingCell.Player, Piece = AttackingCell.Piece, Row = AttackingCell.Row, Col = AttackingCell.Col },
-                                    new CellState() { Player = cell.Player, Piece = Piece.Empty, Row = cell.Row, Col = cell.Col });
+                                    new CellState() { Player = cell.Player, Piece = Piece.Empty, Row = cell.Row, Col = cell.Col }
+                                });
                             
                             // regardless the AttackingCell disappears
                             RemovePiece(AttackingCell);
 
                             // remove the attacked if it lost
-                            if (!awayWon)
+                            if (!attackedWon)
                             {
                                 RemovePiece(cell);
                             }
 
-                            // place the attacker if home wins
-                            if (homeWon)
+                            // place the attacker if wins
+                            if (attackerWon)
                             {
                                 AddPiece(aPiece, aPlayer, cell.Row, cell.Col);
                             }
@@ -835,7 +864,7 @@ namespace BoatEgo
 
                     case GameState.Play_PickOpponent:
                         // check that the appropriate cell was selected
-                        if (state == State.SelectableAway)
+                        if (state == State.SelectableOpponent)
                         {
                             // choose this cell
                             SelectedCell = cell;
@@ -845,8 +874,8 @@ namespace BoatEgo
                             cell = DestinationCell;
                             DestinationCell = SelectInvalidCell();
 
-                            OnNotifyInfo(NotifyReason.ChooseOpponent,
-                                new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col });
+                            OnNotify(NotifyReason.ChooseOpponent,
+                                new CellState[] { new CellState() { Player = Player, Piece = SelectedCell.Piece, Row = cell.Row, Col = cell.Col } });
 
                             // change state back to battle
                             ChangeState(GameState.Play_Battle);
@@ -854,39 +883,39 @@ namespace BoatEgo
                         }
                         break;
 
-                    case GameState.Play_AwayPlay:
+                    case GameState.Play_OpponentPlay:
                         // Must set
                         //   AttackingCell - the cell that is attacking
                         //   cell - the cell that is being attacked (must be within a move of AttackingCell)
                         //   SelectedCell - the 'guess' if AttackingCell is a 1
 
                         // get a view of the board
-                        var awayView = GetBoardView(Player.Blue);
+                        var opponentView = GetBoardView(Player.Blue);
 
                         // get the initial piece layout ascynchronsly
-                        var moveTask = new Task<AwayMove>(() => { return Computer.Move(awayView); });
+                        var moveTask = new Task<OpponentMove>(() => { return Computer.Move(opponentView); });
                         moveTask.Start();
-                        var awayMove = await moveTask;
+                        var opponentMove = await moveTask;
 
                         // get the moving piece (and validate)
-                        state = GetCellState(awayMove.From.Row, awayMove.From.Col);
+                        state = GetCellState(opponentMove.From.Row, opponentMove.From.Col);
                         if (state != State.Playable) throw new Exception("Computer choose a non-playable piece to play");
-                        SelectedCell = States[awayMove.From.Row][awayMove.From.Col];
+                        SelectedCell = States[opponentMove.From.Row][opponentMove.From.Col];
                         if (SelectedCell.Player != CurrentPlayer ||
                             SelectedCell.Piece == Piece.Empty) throw new Exception("Computer choose an invalid piece to play");
 
                         // get the destination piece (and validate)
-                        state = GetCellState(awayMove.To.Row, awayMove.To.Col);
+                        state = GetCellState(opponentMove.To.Row, opponentMove.To.Col);
                         if (state != State.Playable) throw new Exception("Computer choose a non-playable piece to play");
-                        cell = States[awayMove.To.Row][awayMove.To.Col];
+                        cell = States[opponentMove.To.Row][opponentMove.To.Col];
                         if (cell.Player == CurrentPlayer) throw new Exception("Computer choose an invalid piece to play");
 
                         // move & endturn or battle
 
                         // double check that this cell is valid for this cell
-                        var awayMoves = GetMoves(SelectedCell);
+                        var opponentMoves = GetMoves(SelectedCell);
 
-                        if (IsValidMove(cell, awayMoves))
+                        if (IsValidMove(cell, opponentMoves))
                         {
                             // check if this is a battle
                             if (cell.Piece == Piece.Empty)
@@ -902,9 +931,9 @@ namespace BoatEgo
                                 // this is a battle
                                 AttackingCell = SelectedCell;
                                 // get the guess, if there is one
-                                if (awayMove.Guess != Piece.Empty)
+                                if (opponentMove.Guess != Piece.Empty)
                                 {
-                                    var coord = SelectablePieces[(int)CurrentPlayer][(int)awayMove.Guess];
+                                    var coord = SelectablePieces[(int)CurrentPlayer][(int)opponentMove.Guess];
                                     SelectedCell = States[coord.Row][coord.Col];
                                 }
                                 // cell is the place to attack
@@ -924,7 +953,7 @@ namespace BoatEgo
                     //
 
                     case GameState.End_GameOver:
-                        OnNotify(NotifyReason.GameOver);
+                        OnNotify(NotifyReason.GameOver, null);
                         break;
 
                     default: throw new Exception("Unknown game state : " + CurrentState);
@@ -1063,12 +1092,6 @@ namespace BoatEgo
             return States[States.Length - 1][0];
         }
 
-        private bool IsInHomePlacementRegion(int row, int col)
-        {
-            // the player's placement region is the last 3 rows of playable region
-            return (row >= 5 && row <= 7 && col >= 1 && col <= 10);
-        }
-
         private BoatEgoBoardView GetBoardView(Player player, bool forInit = false)
         {
             // get a view of the board from this players pov
@@ -1103,7 +1126,7 @@ namespace BoatEgo
                     }
 
                     // get moves, if the colors match
-                    List<AwayMove> moves = new List<AwayMove>();
+                    List<OpponentMove> moves = new List<OpponentMove>();
                     if (cell.Player == player && cell.Piece != Piece.Empty)
                     {
                         var pmoves = GetMoves(cell);
@@ -1113,7 +1136,7 @@ namespace BoatEgo
                             {
                                 // transform into a consumable form
                                 moves.Add(
-                                    new AwayMove()
+                                    new OpponentMove()
                                     {
                                         From = new Coord() { Row = cell.Row, Col = cell.Col },
                                         To = new Coord() { Row = move.Row, Col = move.Col }
@@ -1146,36 +1169,56 @@ namespace BoatEgo
             //
             //  p = Playable
             //  x = Nothing
-            //  h = SelectableHome
-            //  a = SelectableAway
+            //  h = SelectablePlayer
+            //  a = SelectableOpponent
             //  i = Island
-            //                       1 1
-            //   0 1 2 3 4 5 6 7 8 9 0 1
-            // 0 x p p p p p p p p p p x
-            // 1 a p p p p p p p p p p a
-            // 2 a p p p p p p p p p p a
-            // 3 a p p i i p p i i p p a
-            // 4 a p p i i p p i i p p a
-            // 5 a p p p p p p p p p p a
-            // 6 a p p p p p p p p p p a
-            // 7 x p p p p p p p p p p x
-            // 8 x x h h h h h h h h x x
-            // 9 x x x h h h h h x x x x
+            //                        1 1 1 1
+            //    0 1 2 3 4 5 6 7 8 9 0 1 2 3
+            //  0 x x x x x x x x x x x x x x
+            //  1 x x p p p p p p p p p p x x
+            //  2 x a p p p p p p p p p p a x
+            //  3 x a p p p p p p p p p p a x
+            //  4 x a p p i i p p i i p p a x
+            //  5 x a p p i i p p i i p p a x
+            //  6 x a p p p p p p p p p p a x
+            //  7 x a p p p p p p p p p p a x
+            //  8 x x p p p p p p p p p p x x
+            //  9 x h h h h h h h h h h h h x
+            // 10 x x x x x x h x x x x x x x
+            // 11 x x x x x x x x x x x x x x
 
             // is Island
-            if ((row == 3 || row == 4) &&
-                (col == 3 || col == 4 || col == 7 || col == 8)) return State.Island;
+            if ((row == (BoardStarting.Row + GamePlayRows) || 
+                row == (BoardStarting.Row + GamePlayRows + 1)) 
+                &&
+                (col == (BoardStarting.Col + 2) || 
+                col == (BoardStarting.Col + 3) || 
+                col == (BoardStarting.Col + GamePlayCols - 4) || 
+                col == (BoardStarting.Col + GamePlayCols - 3))) return State.Island;
 
             // is playable
-            if ((row >= 0 && row <= 7 && col >= 1 && col <= 10)) return State.Playable;
+            if ((row >= BoardStarting.Row && 
+                row < (BoardStarting.Row+BoardRows) && 
+                col >= BoardStarting.Col && 
+                col < (BoardStarting.Col + BoardColumns))) return State.Playable;
 
-            // is selectable (home)
-            if ((row == 8 && col >= 2 && col <= 9)
-                || (row == 9 && col >= 3 && col <= 7)) return State.SelectableHome;
+            // is selectable (player)
+            if ((row == (BoardStarting.Row + BoardRows) &&
+            col >= (BoardStarting.Col - 1) &&
+            col <= (BoardStarting.Col + BoardColumns))
+            ||
+            (row == (BoardStarting.Row + BoardRows + 1) &&
+            col == BoardStarting.Col + (BoardColumns / 2))) return State.SelectablePlayer;
 
-            // is selectable (away)
-            if ((col == 0 && row >= 1 && row <= 6)
-                || (col == 11 && row >= 1 && row <= 6)) return State.SelectableAway;
+
+            // is selectable (opponent)
+            if ((col == (BoardStarting.Col-1) && 
+                row >= (BoardStarting.Row+1) && 
+                row <= (BoardStarting.Row + BoardRows - 2))
+                || 
+                (col == (BoardStarting.Col + BoardColumns) && 
+                row >= (BoardStarting.Row + 1) && 
+                row <= (BoardStarting.Row + BoardRows - 2))) return State.SelectableOpponent;
 
             return State.Nothing;
         }
@@ -1195,7 +1238,7 @@ namespace BoatEgo
 
         private void Highlight(CellState cell)
         {
-            if (cell.State != State.Playable && cell.State != State.SelectableHome) throw new Exception("Invalid cell to highlight");
+            if (cell.State != State.Playable && cell.State != State.SelectablePlayer) throw new Exception("Invalid cell to highlight");
 
             // update to mark as highlighted
             States[cell.Row][cell.Col].IsHighlighted = true;
@@ -1216,7 +1259,7 @@ namespace BoatEgo
 
         private void Unhighlight(CellState cell)
         {
-            if (cell.State != State.Playable && cell.State != State.SelectableHome) throw new Exception("Invalid cell to highlight");
+            if (cell.State != State.Playable && cell.State != State.SelectablePlayer) throw new Exception("Invalid cell to highlight");
 
             // mark as not highlighted
             States[cell.Row][cell.Col].IsHighlighted = false;

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BoatEgo
 {
-    class Computer : IAway
+    class Computer : IOpponent
     {
         public Computer()
         {
@@ -34,7 +34,7 @@ namespace BoatEgo
             return board;
         }
 
-        public AwayMove Move(BoatEgoBoardView view)
+        public OpponentMove Move(BoatEgoBoardView view)
         {
             // todo
             var moves = view.GetAvailableMoves().ToList();

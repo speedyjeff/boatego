@@ -18,11 +18,13 @@ namespace BoatEgo
         {
 
             InitializeComponent();
+            var width = BoatEgoBoard.Columns * 50;
+            var height = BoatEgoBoard.Rows * 50;
 
-            Board = new BoatEgoBoardUI(500, 600)
+            Board = new BoatEgoBoardUI(width, height)
             {
-                Width = 600,
-                Height = 500,
+                Width = width,
+                Height = height,
                 PlayOpenFace = true
             };
             this.Controls.Add(Board);
