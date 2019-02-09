@@ -9,6 +9,7 @@ namespace BoatEgo
     public enum Piece { Empty = -3, Flag = 12, Bomb = 11, Spy = 0, _1 = 1, _2 = 2, BombSquad = 3, _4 = 4, _5 = 5, _6 = 6, _7 = 7, _8 = 8, _9 = 9, _10 = 10 };
     public enum Player { Neutral = -1, Red = 0, Blue = 1 };
     public enum BattleOutcome { Win, Loss, Tie };
+    public enum GamePhase { Initializing, Inprogress, Over };
 
     public enum NotifyReason
     {
@@ -28,7 +29,9 @@ namespace BoatEgo
         BattleWon,
         BattleTied,
         ChooseOpponent,
-        PiecePlaced
+        PiecePlaced,
+        YourTurn,
+        TheirTurn
     }
 
     public enum State { Playable, Island, SelectableHome, Nothing, SelectableAway };
@@ -150,6 +153,14 @@ namespace BoatEgo
         public event Action<NotifyReason, CellState> OnNotifyInfo;
         public event Action<NotifyReason, CellState, CellState> OnNotifyChange;
 
+        public GamePhase Phase
+        {
+            get
+            {
+                return GetGamePhase();
+            }
+        }
+
         public void Select(int row, int col)
         {
             // ensure not reentrant
@@ -245,14 +256,12 @@ namespace BoatEgo
         //
         enum GameState
         {
-            // initialize the board
+            // Initializting
             Init_Selected,
-
-            // pre-game
             Pre_WaitForAwaySetup,
             Pre_StartGame,
 
-            // game
+            // Inprogress
             Play_HomePlay,
             Play_AwayPlay,
             Play_Battle,
@@ -260,10 +269,34 @@ namespace BoatEgo
             Play_PickOpponent,
             Play_EndTurn,
 
-            // end
+            // Over
             End_GameOver
         }
         private GameState CurrentState;
+
+        private GamePhase GetGamePhase()
+        {
+            switch (CurrentState)
+            {
+                case GameState.Init_Selected:
+                case GameState.Pre_WaitForAwaySetup:
+                case GameState.Pre_StartGame:
+                    return GamePhase.Initializing;
+
+                case GameState.Play_HomePlay:
+                case GameState.Play_AwayPlay:
+                case GameState.Play_Battle:
+                case GameState.Play_PickOpponent:
+                case GameState.Play_Move:
+                case GameState.Play_EndTurn:
+                    return GamePhase.Inprogress;
+
+                case GameState.End_GameOver:
+                    return GamePhase.Over;
+
+                default: throw new Exception("Unknown game state");
+            }
+        }
 
         private bool ChangeState(GameState newState)
         {
@@ -491,22 +524,22 @@ namespace BoatEgo
                         if (awayCanMove == 0 && homeCanMove == 0)
                         {
                             // stale mate
-                            OnNotify(NotifyReason.StaleMate);
                             ChangeState(GameState.End_GameOver);
+                            OnNotify(NotifyReason.StaleMate);
                             applyChange = true;
                         }
                         else if (awayCanMove == 0 || awayFlags == 0)
                         {
                             // Home wins
-                            OnNotify(NotifyReason.HomeWins);
                             ChangeState(GameState.End_GameOver);
+                            OnNotify(NotifyReason.HomeWins);
                             applyChange = true;
                         }
                         else if (homeCanMove == 0 || homeFlags == 0)
                         {
                             // away wins
-                            OnNotify(NotifyReason.AwayWins);
                             ChangeState(GameState.End_GameOver);
+                            OnNotify(NotifyReason.AwayWins);
                             applyChange = true;
                         }
                         else
@@ -516,6 +549,7 @@ namespace BoatEgo
                             {
                                 CurrentPlayer = Player.Blue;
                                 ChangeState(GameState.Play_AwayPlay);
+                                OnNotify(NotifyReason.TheirTurn);
                                 applyChange = true;
                             }
                             else
@@ -523,6 +557,7 @@ namespace BoatEgo
                                 // blue or neutral (eg. first time)
                                 CurrentPlayer = Player.Red;
                                 ChangeState(GameState.Play_HomePlay);
+                                OnNotify(NotifyReason.YourTurn);
                             }
                         }
 
@@ -1116,13 +1151,13 @@ namespace BoatEgo
             //  i = Island
             //                       1 1
             //   0 1 2 3 4 5 6 7 8 9 0 1
-            // 0 a p p p p p p p p p p a
+            // 0 x p p p p p p p p p p x
             // 1 a p p p p p p p p p p a
             // 2 a p p p p p p p p p p a
             // 3 a p p i i p p i i p p a
             // 4 a p p i i p p i i p p a
             // 5 a p p p p p p p p p p a
-            // 6 x p p p p p p p p p p x
+            // 6 a p p p p p p p p p p a
             // 7 x p p p p p p p p p p x
             // 8 x x h h h h h h h h x x
             // 9 x x x h h h h h x x x x
@@ -1139,8 +1174,8 @@ namespace BoatEgo
                 || (row == 9 && col >= 3 && col <= 7)) return State.SelectableHome;
 
             // is selectable (away)
-            if ((col == 0 && row >= 0 && row <= 5)
-                || (col == 11 && row >= 0 && row <= 5)) return State.SelectableAway;
+            if ((col == 0 && row >= 1 && row <= 6)
+                || (col == 11 && row >= 1 && row <= 6)) return State.SelectableAway;
 
             return State.Nothing;
         }

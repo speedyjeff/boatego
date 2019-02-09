@@ -133,6 +133,16 @@ namespace BoatEgo.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap edge {
+            get {
+                object obj = ResourceManager.GetObject("edge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap floaty {
             get {
                 object obj = ResourceManager.GetObject("floaty", resourceCulture);
@@ -206,6 +216,16 @@ namespace BoatEgo.Properties {
         internal static System.Drawing.Bitmap sailboat {
             get {
                 object obj = ResourceManager.GetObject("sailboat", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap scroll {
+            get {
+                object obj = ResourceManager.GetObject("scroll", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -36,6 +36,8 @@ namespace BoatEgo
         private IImage[] PieceImages;
         private IImage BorderImage;
         private IImage IslandImage;
+        private IImage EdgeImage;
+        private IImage ScrollImage;
 
         //
         // Init
@@ -50,8 +52,6 @@ namespace BoatEgo
             // init
             Rand = new Random();
 
-            
-
             // setup board
             Board = new Board(
                 new BoardConfiguration()
@@ -60,7 +60,7 @@ namespace BoatEgo
                     Width = Width,
                     Columns = BoatEgoBoard.Columns,
                     Rows = BoatEgoBoard.Rows,
-                    Background = new RGBA() { R = 0, G = 100, B = 200, A = 255 }
+                    Background = new RGBA() { R = 51, G = 158, B = 247, A = 255 }
                 }
             );
             Board.OnCellClicked += Board_OnCellClicked;
@@ -81,6 +81,8 @@ namespace BoatEgo
             // artifacts
             BorderImage = images["border"];
             IslandImage = images["island"];
+            EdgeImage = images["edge"];
+            ScrollImage = images["scroll"];
 
             // waves
             WavesImages = new IImage[]
@@ -185,11 +187,46 @@ namespace BoatEgo
 
         private void AddOverlay(string text)
         {
+            // determine where the best place is to put the message
+            var x = 0;
+            var y = 0;
+            if (Game.Phase != GamePhase.Initializing)
+            {
+                x = Board.CellWidth * 3;
+                y = Board.CellHeight * 3;
+            }
+
+            // break text into lines that will be presented on the scroll
+            var lines = new List<string>();
+            var linesize = 17;
+            var start = 0;
+            do
+            {
+                var length = linesize;
+                if (start + length > text.Length) length = text.Length - start;
+                lines.Add(text.Substring(start, length));
+                start += linesize;
+            }
+            while (start < text.Length);
+
             Board.UpdateOverlay((img) =>
             {
+                // clear
                 img.Graphics.Clear(RGBA.White);
                 img.MakeTransparent(RGBA.White);
-                img.Graphics.Text(RGBA.Black, img.Width / 5, img.Height / 2, text, 12);
+
+                // put scroll
+                img.Graphics.Image(ScrollImage, x, y, Board.CellWidth * 2, Board.CellHeight * 2);
+
+                // adjust x and y for scroll offsets
+                x += 35;
+                y += 20;
+
+                // put messages
+                for (int i=0; i<lines.Count; i++)
+                {
+                    img.Graphics.Text(RGBA.Black, x, y+ (i*12), lines[i], 12);
+                }
             });
         }
 
@@ -201,6 +238,7 @@ namespace BoatEgo
                 switch (cell.State)
                 {
                     case State.Nothing:
+                        img.Graphics.Image(EdgeImage, 0, 0, img.Width, img.Height);
                         break;
 
                     case State.Island:
@@ -256,12 +294,23 @@ namespace BoatEgo
                 // add waves
                 var wave = Rand.Next() % WavesImages.Length;
                 img.Graphics.Image(WavesImages[wave], 0, 0, img.Width, img.Height);
+                return;
             }
 
             // add border
             if (border) img.Graphics.Image(BorderImage, 0, 0, img.Width, img.Height);
-
-            if (piece == Piece.Empty) return;
+            else
+            {
+                // make the background a shade of the player
+                if (player == Player.Red)
+                {
+                    img.Graphics.Clear(new RGBA() { R = 150, A = 255 });
+                }
+                else if (player == Player.Blue)
+                {
+                    img.Graphics.Clear(new RGBA() { B = 150, A = 255 });
+                }
+            }
 
             if (visible)
             {

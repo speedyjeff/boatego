@@ -134,9 +134,6 @@
     <None Include="media\redpiece.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="media\irconclad.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="media\submarine.png" />
   </ItemGroup>
   <ItemGroup>
@@ -152,9 +149,6 @@
     <None Include="media\border.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="media\wavs1.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="media\waves1.png" />
   </ItemGroup>
   <ItemGroup>
@@ -168,6 +162,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="media\ironclad.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\edge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\scroll.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
