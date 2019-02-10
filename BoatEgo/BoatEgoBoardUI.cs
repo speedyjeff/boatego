@@ -48,6 +48,9 @@ namespace BoatEgo
         private CellState OPlayerMoveFrom = default(CellState);
         private List<Tuple<bool, CellState>> OBattles = new List<Tuple<bool,CellState>>();
 
+        // additional tracking for visible pieces during battles
+        private List<CellState> ForceVisible = new List<CellState>();
+
         //
         // Init
         //
@@ -203,6 +206,10 @@ namespace BoatEgo
                     // turn off highlighting if needed to guess
                     OHighlightAwayPieces = false;
 
+                    // update the UI
+                    ForceVisible.Add(cells[1]);
+                    GetCellAndUpdate(cells[1].Row, cells[1].Col);
+
                     // update, but do not change the current text
                     AddOverlay(OPreviousText);
                     break;
@@ -215,7 +222,31 @@ namespace BoatEgo
                     else OOpponentMoveFrom = cells[0];
 
                     // clear the battles if human
-                    if (cells[0].Player == Player.Red) OBattles.Clear();
+                    if (cells[0].Player == Player.Red)
+                    {
+                        // clear
+                        OBattles.Clear();
+
+                        // update the force visible cells
+                        var update = ForceVisible.ToArray();
+                        ForceVisible.Clear();
+                        foreach (var cell in update) GetCellAndUpdate(cell.Row, cell.Col);
+                    }
+                    else
+                    {
+                        // check if one of the force visible cells has moved
+                        CellState update = default(CellState);
+                        foreach(var cell in ForceVisible)
+                        {
+                            if (cell.Row == cells[0].Row && cell.Col == cells[0].Col) update = cell;
+                        }
+                        if (!update.Equals(default(CellState)))
+                        {
+                            // found it, so delete and move it
+                            ForceVisible.Remove(update);
+                            ForceVisible.Add(cells[1]);
+                        }
+                    }
 
                     // update, but do not change the current text
                     AddOverlay(OPreviousText);
@@ -392,6 +423,11 @@ namespace BoatEgo
             OPreviousText = text;
         }
 
+        private void GetCellAndUpdate(int row, int col)
+        {
+            UpdateCell(Game[row,col]);
+        }
+
         private void UpdateCell(CellState cell)
          {
             // update the cell
@@ -409,10 +445,25 @@ namespace BoatEgo
 
                     case State.Playable:
                         // display the piece
+
+                        // the piece is visible if...
+                        //  this is the home player
+                        //  playopenface
+                        //  or the piece was just part of a battle
+                        var visible = (cell.Player == Player.Red) || PlayOpenFace;
+                        if (!visible)
+                        {
+                            // check if this cell has been requested to be visible (eg. a battle)
+                            foreach(var fcell in ForceVisible)
+                            {
+                                if (fcell.Row == cell.Row && fcell.Col == cell.Col) visible = true;
+                            }
+                        }
+
                         DrawPiece(cell.Player, 
                             cell.Piece, 
                             true, // border
-                            (cell.Player == Player.Red) || PlayOpenFace, // visible
+                            visible, // visible
                             false, // show remaining pieces
                             img);
                         break;

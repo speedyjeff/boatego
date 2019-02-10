@@ -25,7 +25,7 @@ namespace BoatEgo
             {
                 Width = width,
                 Height = height,
-                PlayOpenFace = true
+                PlayOpenFace = false
             };
             this.Controls.Add(Board);
         }
