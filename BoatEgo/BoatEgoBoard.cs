@@ -146,6 +146,12 @@ namespace BoatEgo
         public const int Rows = 12;
         public const int Columns = 14;
 
+        public const int BoardRows = 8;
+        public const int BoardColumns = 10;
+
+        public const int GamePlayRows = 3;
+        public const int GamePlayCols = 10;
+
         public const int NumberOfPieces = 13;
 
         public event Action<CellState> OnCellUpdate;
@@ -198,10 +204,6 @@ namespace BoatEgo
         }
 
         #region private
-        private const int GamePlayRows = 3;
-        private const int GamePlayCols = 10;
-        private const int BoardRows = 8;
-        private const int BoardColumns = 10;
 
         private static Coord PlayerStarting = new Coord() { Row = 6, Col = 2 };
         private static Coord OpponentStarting = new Coord() { Row = 1, Col = 2 };
@@ -820,8 +822,8 @@ namespace BoatEgo
 
                             // inform the computer of a battle
                             Computer.Feedback_Battle(
-                                new Coord() { Row = AttackingCell.Row, Col = AttackingCell.Col },
-                                new Coord() { Row = cell.Row, Col = cell.Col },
+                                new CellState() { Player = AttackingCell.Player, Piece = AttackingCell.Piece, Row = AttackingCell.Row, Col = AttackingCell.Col },
+                                new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col },
                                 humanOutcome == NotifyReason.BattleTied ? BattleOutcome.Tie :
                                 (humanOutcome == NotifyReason.BattleWon ? BattleOutcome.Loss : BattleOutcome.Win)
                                 );
@@ -831,7 +833,7 @@ namespace BoatEgo
                                 new CellState[]
                                 {
                                     new CellState() { Player = AttackingCell.Player, Piece = AttackingCell.Piece, Row = AttackingCell.Row, Col = AttackingCell.Col },
-                                    new CellState() { Player = cell.Player, Piece = Piece.Empty, Row = cell.Row, Col = cell.Col }
+                                    new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col }
                                 });
                             
                             // regardless the AttackingCell disappears
