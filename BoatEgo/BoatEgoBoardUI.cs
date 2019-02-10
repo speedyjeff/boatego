@@ -40,6 +40,7 @@ namespace BoatEgo
         private IImage[] ScrollImages;
         private IImage WinImage;
         private IImage LostImage;
+        private IImage TitleImage;
 
         // overlay tracking
         private string OPreviousText = "";
@@ -50,6 +51,9 @@ namespace BoatEgo
 
         // additional tracking for visible pieces during battles
         private List<CellState> ForceVisible = new List<CellState>();
+
+        // tutorial tracking
+        private bool IsTuturial = true;
 
         //
         // Init
@@ -101,6 +105,7 @@ namespace BoatEgo
                 };
             WinImage = images["win"];
             LostImage = images["lost"];
+            TitleImage = images["title"];
 
             // waves
             WavesImages = new IImage[]
@@ -151,6 +156,7 @@ namespace BoatEgo
             }
 
             // add an overlay to the user to start placing pieces
+            IsTuturial = true;
             AddOverlay("Start placing your pieces");
         }
 
@@ -160,6 +166,13 @@ namespace BoatEgo
 
         private void Board_OnCellClicked(int row, int col, float x, float y)
         {
+            // turn off the tuturial if it is on
+            if (IsTuturial)
+            {
+                IsTuturial = false;
+                AddOverlay(OPreviousText);
+            }
+
             if (Game != null) Game.Select(row, col);
         }
 
@@ -417,7 +430,35 @@ namespace BoatEgo
                         img.Graphics.Image(LostImage, ((b.Item2.Col + 1) * Board.CellWidth) - (Board.CellWidth / 5), b.Item2.Row * Board.CellHeight, Board.CellWidth / 5, Board.CellHeight / 5);
                     }
                 }
+
+                // display the tutorial
+                if (IsTuturial)
+                {
+                    // put title image
+                    img.Graphics.Rectangle(new RGBA() { R = 255, G = 255, B = 255, A = 230 }, Board.CellWidth, Board.CellHeight, Board.Width - (Board.CellWidth * 2), Board.CellHeight * 8, true, true);
+                    img.Graphics.Image(TitleImage, Board.CellWidth, Board.CellHeight, Board.Width - (Board.CellWidth * 2), Board.CellHeight * 4);
+
+                    // insert instructions
+                    var font = 12;
+                    var ty = Board.CellHeight * 5;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "Welcome to BoatEgo, the game of strategy. You control the Red pieces.", font);
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "Your mission is to capture Blue's Flag.  Start by placing your 30 soliders", font);
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "in the lowest 3 rows. Once your last piece is placed the battle begins.", font);
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "Battles are won and lost based on the value of the piece (the value is ", font);
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "displayed in the small white box).  A few special rules exist:", font);
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "(S) capture 10s, (3) capture Bombs, and (1) capture any guessed piece", font);
+
+                    ty += 30;
+                    img.Graphics.Text(RGBA.Black, Board.CellWidth * 2, ty, "<click to start>", 8);
+                }
             });
+
+
 
             // retain the text from this overlap
             OPreviousText = text;

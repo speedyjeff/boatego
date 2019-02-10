@@ -182,5 +182,8 @@
   <ItemGroup>
     <None Include="media\win.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="media\title.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
