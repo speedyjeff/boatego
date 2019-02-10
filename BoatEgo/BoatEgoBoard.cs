@@ -830,7 +830,7 @@ namespace BoatEgo
                                 humanOutcome == NotifyReason.BattleTied ? BattleOutcome.Tie :
                                 (humanOutcome == NotifyReason.BattleWon ? BattleOutcome.Loss : BattleOutcome.Win)
                                 );
-                            System.Diagnostics.Debug.WriteLine("{0}[{1}] v {1}[{2}] [{3},{4}] [{5},{6}]", AttackingCell.Player, AttackingCell.Piece, cell.Player, cell.Piece, AttackingCell.Row - BoardStarting.Row, AttackingCell.Col - BoardStarting.Col, cell.Row - BoardStarting.Row, cell.Col - BoardStarting.Col);
+                            System.Diagnostics.Debug.WriteLine("{0}[{1}] v {2}[{3}] [{4},{5}] [{6},{7}]", AttackingCell.Player, AttackingCell.Piece, cell.Player, cell.Piece, AttackingCell.Row - BoardStarting.Row, AttackingCell.Col - BoardStarting.Col, cell.Row - BoardStarting.Row, cell.Col - BoardStarting.Col);
 
                             // notify to the UI what happened
                             OnNotify(humanOutcome,
@@ -902,6 +902,12 @@ namespace BoatEgo
                         var moveTask = new Task<OpponentMove>(() => { return Computer.Move(opponentView); });
                         moveTask.Start();
                         var opponentMove = await moveTask;
+
+                        // have to translate the move back into full board coords
+                        opponentMove.From.Row += BoardStarting.Row;
+                        opponentMove.To.Row += BoardStarting.Row;
+                        opponentMove.From.Col += BoardStarting.Col;
+                        opponentMove.To.Col += BoardStarting.Col;
 
                         // get the moving piece (and validate)
                         state = GetCellState(opponentMove.From.Row, opponentMove.From.Col);
@@ -1144,8 +1150,8 @@ namespace BoatEgo
                                 moves.Add(
                                     new OpponentMove()
                                     {
-                                        From = new Coord() { Row = cell.Row, Col = cell.Col },
-                                        To = new Coord() { Row = move.Row, Col = move.Col }
+                                        From = new Coord() { Row = cell.Row - BoardStarting.Row, Col = cell.Col - BoardStarting.Col },
+                                        To = new Coord() { Row = move.Row - BoardStarting.Row, Col = move.Col - BoardStarting.Col }
                                     }
                                     );
                             }

@@ -20,7 +20,7 @@ namespace BoatEgo
                 for(int c = 0; c < PieceGuessBoard[r].Length; c++)
                 {
                     // assume everthing is a bomb or flag
-                    if (r >= (BoatEgoBoard.BoardRows - 3)) PieceGuessBoard[r][c] = Piece.Bomb | Piece.Flag;
+                    if (r >= (BoatEgoBoard.BoardRows - 3)) PieceGuessBoard[r][c] = UnknownNotMovingPiece;
                     else PieceGuessBoard[r][c] = Piece.Empty;
                 }
             }
@@ -47,28 +47,41 @@ namespace BoatEgo
         {
             // fill the positions with the available pieces
 
+            // over time the 'Pick the most used' results in a predictable placement of pieces
+            // injecting some randomness
+
             // take each piece and apply to board
             var comparer = new SortPiecesComparer(false /*do not use value*/);
             foreach(var kvp in board.PieceCounts.OrderByDescending(pc => pc, comparer))
             {
                 var piece = kvp.Key;
                 var count = kvp.Value;
-                foreach(var index in GetPrioritizedIndexes(PlacementMatrix[(int)piece]))
+                var randomizeAttempts = 5;
+                var throwNextTime = false;
+                do
                 {
-                    if (count == 0) break;
-
-                    // place this piece at this index
-                    var row = index / BoatEgoBoard.GamePlayCols;
-                    var col = index % BoatEgoBoard.GamePlayCols;
-
-                    if (board.GetState(row, col) == ViewState.Open)
+                    foreach (var index in GetPrioritizedIndexes(PlacementMatrix[(int)piece]))
                     {
-                        board.PutPiece(row, col, piece);
-                        // decrement
-                        count--;
+                        if (count == 0) break;
+
+                        // place this piece at this index
+                        var row = index / BoatEgoBoard.GamePlayCols;
+                        var col = index % BoatEgoBoard.GamePlayCols;
+
+                        // randomly skip some of the first choices to add some randomness to placement
+                        if (randomizeAttempts-- > 0 && Rand.Next() % 2 == 0) continue;
+
+                        if (board.GetState(row, col) == ViewState.Open)
+                        {
+                            board.PutPiece(row, col, piece);
+                            // decrement
+                            count--;
+                        }
                     }
+                    if (throwNextTime && count != 0) throw new Exception("Failed to place piece : " + piece);
+                    throwNextTime = true;
                 }
-                if (count != 0) throw new Exception("Failed to place piece : " + piece);
+                while (count > 0);
             }
 
             return board;
@@ -89,9 +102,101 @@ namespace BoatEgo
                 }
             }
 
-            // todo
-            var moves = view.GetAvailableMoves().ToList();
-            return moves[Rand.Next() % moves.Count];
+            // categorize the moves then pick the one that is most likely to help
+
+            var categories = new Dictionary<MoveCategory, List<OpponentMove>>();
+            for (int i = 0; i < (int)MoveCategory.END; i++) categories.Add((MoveCategory)i, new List<OpponentMove>());
+
+            foreach (var move in view.GetAvailableMoves())
+            {
+                var piece = view.GetPiece(move.From.Row, move.From.Col);
+
+                // will this move result in an attack (that we can win)
+                if (IsBattle(move.To, piece /*check if this would win*/))
+                {
+                    categories[MoveCategory.AttackKnownOpponent].Add(move);
+                }
+
+                // are we next to a known enemy that we need to move away from?
+                else if (IsAdjacentToKnownGreaterEnemy(move.From, piece) && !IsAdjacentToKnownGreaterEnemy(move.To, piece))
+                {
+                    categories[MoveCategory.AwayFromKnownOpponent].Add(move);
+                }
+
+                // check if this would move towards a battle that we can win (and not adjacent to a known enemy)
+                else if (IsTowardsEnemy(move.From, move.To) && !IsAdjacentToKnownGreaterEnemy(move.To, piece))
+                {
+                    categories[MoveCategory.TowardsKnownOpponent].Add(move);
+                }
+
+                // check if we would attack (and we are not an 8+, Spy, 1 or BombSquad - which we should not try to waste)
+                else if (IsBattle(move.To, Piece.Empty /* do not require win */) && 
+                    piece != Piece.Spy && piece != Piece._1 && piece != Piece.BombSquad &&
+                    piece < Piece._8)
+                {
+                    categories[MoveCategory.OtherAttack].Add(move);
+                }
+
+                // check if this would move us towards the enemy
+                else if (IsMove(move.From, move.To, 1, 0))
+                {
+                    categories[MoveCategory.ForwardMove].Add(move);
+                }
+
+                // check if this would move us backwards
+                else if (IsMove(move.From, move.To, -1, 0))
+                {
+                    categories[MoveCategory.BackwardMove].Add(move);
+                }
+
+                // else other
+                else
+                {
+                    categories[MoveCategory.Other].Add(move);
+                }
+            }
+
+            // iterate through the available moves (in priority order) and choose one
+            for (int i = 0; i < (int)MoveCategory.END; i++)
+            {
+                List<OpponentMove> moves = null;
+                if (categories.TryGetValue((MoveCategory)i, out moves))
+                {
+                    if (moves.Count > 0)
+                    {
+                        // todo improve (better than random)
+                        var move = moves[Rand.Next() % moves.Count];
+                        var piece = view.GetPiece(move.From.Row, move.From.Col);
+                        var guess = Piece.Empty;
+
+                        // should guess
+                        guess = PieceGuessBoard[move.To.Row][move.To.Col];
+
+                        if (guess == UnknownMovingPiece)
+                        {
+                            // guess a moving piece
+                            guess = (Piece)(Rand.Next() % (int)Piece.Bomb);
+                        }
+                        else if (guess == UnknownNotMovingPiece)
+                        {
+                            // guess bomb
+                            guess = Piece.Bomb;
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("Cat[{0}] Piece[{1}] Guess[{2}]", (MoveCategory)i, piece, guess);
+
+                        // make the move
+                        return new OpponentMove()
+                        {
+                            From = move.From,
+                            To = move.To,
+                            Guess = guess
+                        };
+                    } // if moves.Count > 0
+                } // if category
+            } // for
+
+            throw new Exception("A move was not successfully discovered");
         }
 
         public void Feedback_OpponentMove(Coord from, Coord to)
@@ -105,9 +210,7 @@ namespace BoatEgo
             // else it is not a Bomb or Flag
             var rdelta = Math.Abs(from.Row - to.Row);
             var cdelta = Math.Abs(from.Col - to.Col);
-            var guess = Piece.BombSquad | Piece.Spy |
-                            Piece._1 | Piece._2 | Piece._4 | Piece._5 | Piece._6 |
-                            Piece._7 | Piece._8 | Piece._9 | Piece._10;
+            var guess = UnknownMovingPiece;
 
             // this is a _2
             if (rdelta > 1 || cdelta > 1) guess = Piece._2;
@@ -168,6 +271,13 @@ namespace BoatEgo
         private int[][] PlacementMatrix;
         private Piece[][] PieceGuessBoard;
 
+        private const Piece UnknownNotMovingPiece = Piece.Bomb | Piece.Flag;
+        private const Piece UnknownMovingPiece = Piece.BombSquad | Piece.Spy |
+                            Piece._1 | Piece._2 | Piece._4 | Piece._5 | Piece._6 |
+                            Piece._7 | Piece._8 | Piece._9 | Piece._10;
+
+        enum MoveCategory { AwayFromKnownOpponent = 0, AttackKnownOpponent = 1, TowardsKnownOpponent = 2, OtherAttack = 3, ForwardMove = 4, BackwardMove = 5, Other = 6, END = 7 };
+
         internal void Feedback(BoatEgoBoardView view)
         {
             // add these to our current tracking file to help train the computer
@@ -204,6 +314,108 @@ namespace BoatEgo
                 yield return kvp.Key;
             }
         }
+
+        private bool IsMove(Coord from, Coord to, int rdir, int cdir)
+        {
+            // check if this move is in the desitred direction
+            var rdelta = (to.Row - from.Row);
+            if ((rdelta < 0 && rdir < 0) || (rdelta > 0 && rdir > 0)) return true;
+
+            var cdelta = (to.Col - from.Col);
+            if ((cdelta < 0 && cdir < 0) || (cdelta > 0 && cdir > 0)) return true;
+
+            return false;
+        }
+
+        private bool IsTowardsEnemy(Coord from, Coord to)
+        {
+            // check if 1 or 2 more moves in this direction puts us closer to a known enemy
+            // todo
+            /*
+            //          from
+            // <check>   to    <check>
+            // <check> <check> <check> 
+
+            var rdelta = to.Row - from.Row;
+            var cdelta = to.Col - from.Col;
+
+            // one space further
+            if (IsAdjacentToKnownGreaterEnemy(new Coord()
+            {
+                Row = to.Row + rdelta,
+                Col = to.Col + cdelta
+            }, me)) return true;
+
+            // two spaces further
+            if (IsAdjacentToKnownGreaterEnemy(new Coord()
+            {
+                Row = to.Row + (rdelta*2),
+                Col = to.Col + (cdelta*2)
+            }, me)) return true;
+            */
+            return false;
+        }
+
+        private bool IsBattle(Coord to, Piece piece)
+        {
+            // check if to is an enemy
+            var dest = PieceGuessBoard[to.Row][to.Col];
+
+            // check if this is a battle
+            if (dest == Piece.Empty) return false;
+
+            // check if we know what this piece is
+            if (dest == UnknownMovingPiece || dest == UnknownNotMovingPiece) return false;
+
+            // check if we should try to test for a win
+            if (piece == Piece.Empty) return true;
+
+            // check if we think we are going to win
+            return WouldWinBattle(piece, dest);
+        }
+
+        private bool WouldWinBattle(Piece me, Piece them)
+        {
+            if (them == Piece.Empty) return true;
+            else if (them == UnknownMovingPiece || them == UnknownNotMovingPiece) return false;
+            else if (me == Piece._1) return true;
+            else if (them == Piece.Flag) return true;
+            else if (them == Piece.Bomb) return me == Piece.BombSquad;
+            else if (them == Piece._10) return me == Piece.Spy;
+            else return (them < me);
+        }
+
+        private bool IsAdjacentToKnownGreaterEnemy(Coord loc, Piece me)
+        {
+            Piece adj = Piece.Empty;
+
+            // check if the loc is occupied and all its neighbors
+
+            foreach (var delta in new Tuple<int, int>[]
+            {
+                new Tuple<int, int>(0, 0),
+                new Tuple<int, int>(-1, 0),
+                new Tuple<int, int>(1, 0),
+                new Tuple<int, int>(0, -1),
+                new Tuple<int, int>(0, 1)
+            })
+            {
+                if (loc.Row + delta.Item1 >= 0 && loc.Row + delta.Item1 < BoatEgoBoard.BoardRows &&
+                    loc.Col + delta.Item2 >= 0 && loc.Col + delta.Item2 < BoatEgoBoard.Columns)
+                {
+                    adj = PieceGuessBoard[loc.Row + delta.Item1][loc.Col + delta.Item2];
+                    // if unknown or empty - keep looking
+                    if (adj == Piece.Empty ||
+                        adj == UnknownMovingPiece ||
+                        adj == UnknownNotMovingPiece) continue;
+                    // if known greather enemy - return true
+                    if (!WouldWinBattle(me, adj)) return true;
+                }
+            }
+
+            return false;
+        }
+
         #endregion
     }
 
