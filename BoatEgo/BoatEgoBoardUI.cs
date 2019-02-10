@@ -167,8 +167,6 @@ namespace BoatEgo
 
         private void Game_OnNotify(NotifyReason reason, CellState[] cells)
         {
-            System.Diagnostics.Debug.WriteLine(reason);
-
             switch (reason)
             {
                 // game setup

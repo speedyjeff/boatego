@@ -21,6 +21,6 @@ namespace BoatEgo
 
         void Feedback_OpponentMove(Coord from, Coord to);
 
-        void Feedback_Battle(CellState attaker, CellState attacked, BattleOutcome outcome);
+        void Feedback_Battle(CellState attacker, CellState attacked, BattleOutcome outcome);
     }
 }

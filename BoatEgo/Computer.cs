@@ -7,9 +7,23 @@ namespace BoatEgo
 {
     class Computer : IOpponent
     {
-        public Computer()
+        public Computer(Player player)
         {
             Rand = new Random();
+            Me = player;
+
+            // create the guess board
+            PieceGuessBoard = new Piece[BoatEgoBoard.BoardRows][];
+            for(int r = 0; r<PieceGuessBoard.Length; r++)
+            {
+                PieceGuessBoard[r] = new Piece[BoatEgoBoard.Columns];
+                for(int c = 0; c < PieceGuessBoard[r].Length; c++)
+                {
+                    // assume everthing is a bomb or flag
+                    if (r >= (BoatEgoBoard.BoardRows - 3)) PieceGuessBoard[r][c] = Piece.Bomb | Piece.Flag;
+                    else PieceGuessBoard[r][c] = Piece.Empty;
+                }
+            }
 
             // load the placement map from disk
             if (File.Exists(PlacementMatrixPath))
@@ -62,6 +76,19 @@ namespace BoatEgo
 
         public OpponentMove Move(BoatEgoBoardView view)
         {
+            // validate that our guess board and the view are in-sync
+            // check all the guess spaces coorespond with an enemy in the view
+            for(int r = 0; r < view.Rows; r++)
+            {
+                for(int c = 0; c < view.Columns; c++)
+                {
+                    var guess = PieceGuessBoard[r][c];
+                    var isEnemy = view.GetState(r, c) == ViewState.Enemy;
+                    if ((guess == Piece.Empty && isEnemy) ||
+                        (guess != Piece.Empty && !isEnemy)) throw new Exception("Invalid guess board");
+                }
+            }
+
             // todo
             var moves = view.GetAvailableMoves().ToList();
             return moves[Rand.Next() % moves.Count];
@@ -69,16 +96,77 @@ namespace BoatEgo
 
         public void Feedback_OpponentMove(Coord from, Coord to)
         {
+            if (from.Row < 0 || from.Row >= PieceGuessBoard.Length ||
+                from.Col < 0 || from.Col >= PieceGuessBoard[from.Row].Length ||
+                to.Row < 0 || to.Row >= PieceGuessBoard.Length ||
+                to.Col < 0 || to.Col >= PieceGuessBoard[to.Row].Length) throw new Exception("Out of the bounds of our guess board");
+
+            // if the move traversed more than 2 spaces, it is a _2
+            // else it is not a Bomb or Flag
+            var rdelta = Math.Abs(from.Row - to.Row);
+            var cdelta = Math.Abs(from.Col - to.Col);
+            var guess = Piece.BombSquad | Piece.Spy |
+                            Piece._1 | Piece._2 | Piece._4 | Piece._5 | Piece._6 |
+                            Piece._7 | Piece._8 | Piece._9 | Piece._10;
+
+            // this is a _2
+            if (rdelta > 1 || cdelta > 1) guess = Piece._2;
+            // we already know what it is
+            if (PieceGuessBoard[from.Row][from.Col] != (Piece.Bomb | Piece.Flag)) guess = PieceGuessBoard[from.Row][from.Col];
+
+            // make the update
+            PieceGuessBoard[from.Row][from.Col] = Piece.Empty;
+            PieceGuessBoard[to.Row][to.Col] = guess;
         }
 
-        public void Feedback_Battle(CellState attaker, CellState attacked, BattleOutcome outcome)
+        public void Feedback_Battle(CellState attacker, CellState attacked, BattleOutcome outcome)
         {
+            if (attacker.Row < 0 || attacker.Row >= PieceGuessBoard.Length ||
+                attacker.Col < 0 || attacker.Col >= PieceGuessBoard[attacker.Row].Length ||
+                attacked.Row < 0 || attacked.Row >= PieceGuessBoard.Length ||
+                attacked.Col < 0 || attacked.Col >= PieceGuessBoard[attacked.Row].Length) throw new Exception("Out of the bounds of our guess board");
+
+            // use this information to update our guess board
+            var piece = Piece.Empty;
+
+            // check if we are being attacked
+            if (attacker.Player != Me)
+            {
+                // we are being attacked
+
+                if (PieceGuessBoard[attacker.Row][attacker.Col] == Piece.Empty) throw new Exception("Had an invalid piece for the attacked");
+
+                // remove this piece as it at least has moved
+                PieceGuessBoard[attacker.Row][attacker.Col] = Piece.Empty;
+
+                // the piece that is moving into the place would be the attacker
+                piece = attacker.Piece;
+            }
+            else
+            {
+                // we are attacking
+
+                if (PieceGuessBoard[attacked.Row][attacked.Col] == Piece.Empty) throw new Exception("Had an invalid piece for the attacked");
+
+                // remove the piece from our guess board (we will add it back - if we lost)
+                PieceGuessBoard[attacked.Row][attacked.Col] = Piece.Empty;
+
+                piece = attacked.Piece;
+            }
+ 
+            if (outcome == BattleOutcome.Loss)
+            {
+                // we now know what the opponents piece is
+                PieceGuessBoard[attacked.Row][attacked.Col] = piece;
+            }
         }
 
         #region private
+        private Player Me;
         private Random Rand;
         private string PlacementMatrixPath = @"computer.json";
         private int[][] PlacementMatrix;
+        private Piece[][] PieceGuessBoard;
 
         internal void Feedback(BoatEgoBoardView view)
         {

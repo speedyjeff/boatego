@@ -138,7 +138,7 @@ namespace BoatEgo
             // init
             SelectedCell = SelectInvalidCell();
             DestinationCell = SelectInvalidCell();
-            Computer = new Computer();
+            Computer = new Computer(Player.Blue);
         }
 
         public Player Player { get; private set; }
@@ -661,12 +661,14 @@ namespace BoatEgo
                         // make the move
 
                         // inform the computer of the move
-                        if (CurrentPlayer != Player)
+                        if (CurrentPlayer == Player)
                         {
+                            // convert row, col into board view
                             Computer.Feedback_OpponentMove(
-                                new Coord() { Row = SelectedCell.Row, Col = SelectedCell.Col },
-                                new Coord() { Row = cell.Row, Col = cell.Col });
+                                new Coord() { Row = SelectedCell.Row - BoardStarting.Row, Col = SelectedCell.Col - BoardStarting.Col },
+                                new Coord() { Row = cell.Row - BoardStarting.Row, Col = cell.Col - BoardStarting.Col });
                         }
+                        System.Diagnostics.Debug.WriteLine("{0}[{1}] [{2},{3}] to [{4},{5}]", CurrentPlayer, SelectedCell.Piece, SelectedCell.Row - BoardStarting.Row, SelectedCell.Col - BoardStarting.Col, cell.Row - BoardStarting.Row, cell.Col - BoardStarting.Col);
                         OnNotify(NotifyReason.PieceMove,
                             new CellState[]
                             {
@@ -821,12 +823,14 @@ namespace BoatEgo
                             }
 
                             // inform the computer of a battle
+                            // convert row, col into board view
                             Computer.Feedback_Battle(
-                                new CellState() { Player = AttackingCell.Player, Piece = AttackingCell.Piece, Row = AttackingCell.Row, Col = AttackingCell.Col },
-                                new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row, Col = cell.Col },
+                                new CellState() { Player = AttackingCell.Player, Piece = AttackingCell.Piece, Row = AttackingCell.Row - BoardStarting.Row, Col = AttackingCell.Col - BoardStarting.Col },
+                                new CellState() { Player = cell.Player, Piece = cell.Piece, Row = cell.Row - BoardStarting.Row, Col = cell.Col -BoardStarting.Col },
                                 humanOutcome == NotifyReason.BattleTied ? BattleOutcome.Tie :
                                 (humanOutcome == NotifyReason.BattleWon ? BattleOutcome.Loss : BattleOutcome.Win)
                                 );
+                            System.Diagnostics.Debug.WriteLine("{0}[{1}] v {1}[{2}] [{3},{4}] [{5},{6}]", AttackingCell.Player, AttackingCell.Piece, cell.Player, cell.Piece, AttackingCell.Row - BoardStarting.Row, AttackingCell.Col - BoardStarting.Col, cell.Row - BoardStarting.Row, cell.Col - BoardStarting.Col);
 
                             // notify to the UI what happened
                             OnNotify(humanOutcome,
