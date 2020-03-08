@@ -534,7 +534,7 @@ namespace BoatEgo
         private void DrawPiece(Player player, Piece piece, bool border, bool visible, bool showRemaining, IImage img)
         {
             // replace with background
-            if (!string.IsNullOrWhiteSpace(Board.BackgroundImage))
+            if (!string.IsNullOrWhiteSpace(Board.BackgroundPath) && Board.BackgroundImage != null)
             {
                 img.Graphics.Image(Board.BackgroundImage, 0, 0, img.Width, img.Height);
             }
