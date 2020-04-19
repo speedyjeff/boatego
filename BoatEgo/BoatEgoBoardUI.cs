@@ -85,7 +85,7 @@ namespace BoatEgo
             UI = new UIHookup(this, Board);
 
             // load images
-            var images = Resources.LoadImages(System.Reflection.Assembly.GetExecutingAssembly(), UI.Surface);
+            var images = Resources.LoadImages(System.Reflection.Assembly.GetExecutingAssembly());
             // mark them all as transparent
             foreach (var kvp in images)
             {
