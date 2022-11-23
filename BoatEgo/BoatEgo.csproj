@@ -1,190 +1,81 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6B293119-DE15-4F11-A0C9-228C94605150}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>BoatEgo</RootNamespace>
-    <AssemblyName>BoatEgo</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>true</Deterministic>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
+    <None Remove="computer.json" />
+    <None Remove="media\bluebase.png" />
+    <None Remove="media\bluepiece.png" />
+    <None Remove="media\bomb.png" />
+    <None Remove="media\border.png" />
+    <None Remove="media\chest.png" />
+    <None Remove="media\diver.png" />
+    <None Remove="media\duck.png" />
+    <None Remove="media\edge.png" />
+    <None Remove="media\floaty.png" />
+    <None Remove="media\ironclad.png" />
+    <None Remove="media\island.png" />
+    <None Remove="media\lost.png" />
+    <None Remove="media\redbase.png" />
+    <None Remove="media\redpiece.png" />
+    <None Remove="media\rov.png" />
+    <None Remove="media\rowboat.png" />
+    <None Remove="media\sailboat.png" />
+    <None Remove="media\scroll.png" />
+    <None Remove="media\scrolllong.png" />
+    <None Remove="media\shark.png" />
+    <None Remove="media\squid.png" />
+    <None Remove="media\submarine.png" />
+    <None Remove="media\title.png" />
+    <None Remove="media\turtle.png" />
+    <None Remove="media\waves1.png" />
+    <None Remove="media\waves2.png" />
+    <None Remove="media\waves3.png" />
+    <None Remove="media\win.png" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="BoatEgo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="BoatEgo.Designer.cs">
-      <DependentUpon>BoatEgo.cs</DependentUpon>
-    </Compile>
-    <Compile Include="BoatEgoBoard.cs" />
-    <Compile Include="BoatEgoBoardUI.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="BoatEgoBoardUI.Designer.cs">
-      <DependentUpon>BoatEgoBoardUI.cs</DependentUpon>
-    </Compile>
-    <Compile Include="BoatEgoBoardView.cs" />
-    <Compile Include="Computer.cs" />
-    <Compile Include="IOpponent.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
-    <None Include="computer.json" />
-    <None Include="packages.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
+    <EmbeddedResource Include="computer.json" />
+    <EmbeddedResource Include="media\bluebase.png" />
+    <EmbeddedResource Include="media\bluepiece.png" />
+    <EmbeddedResource Include="media\bomb.png" />
+    <EmbeddedResource Include="media\border.png" />
+    <EmbeddedResource Include="media\chest.png" />
+    <EmbeddedResource Include="media\diver.png" />
+    <EmbeddedResource Include="media\duck.png" />
+    <EmbeddedResource Include="media\edge.png" />
+    <EmbeddedResource Include="media\floaty.png" />
+    <EmbeddedResource Include="media\ironclad.png" />
+    <EmbeddedResource Include="media\island.png" />
+    <EmbeddedResource Include="media\lost.png" />
+    <EmbeddedResource Include="media\redbase.png" />
+    <EmbeddedResource Include="media\redpiece.png" />
+    <EmbeddedResource Include="media\rov.png" />
+    <EmbeddedResource Include="media\rowboat.png" />
+    <EmbeddedResource Include="media\sailboat.png" />
+    <EmbeddedResource Include="media\scroll.png" />
+    <EmbeddedResource Include="media\scrolllong.png" />
+    <EmbeddedResource Include="media\shark.png" />
+    <EmbeddedResource Include="media\squid.png" />
+    <EmbeddedResource Include="media\submarine.png" />
+    <EmbeddedResource Include="media\title.png" />
+    <EmbeddedResource Include="media\turtle.png" />
+    <EmbeddedResource Include="media\waves1.png" />
+    <EmbeddedResource Include="media\waves2.png" />
+    <EmbeddedResource Include="media\waves3.png" />
+    <EmbeddedResource Include="media\win.png" />
   </ItemGroup>
+
+
   <ItemGroup>
-    <None Include="App.config" />
+    <ProjectReference Include="..\engine\engine.Common\engine.Common.csproj" />
+    <ProjectReference Include="..\engine\engine.Winforms\engine.Winforms.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\engine\engine.Common\engine.Common.csproj">
-      <Project>{a181b9f7-0422-4805-915e-573e13d07312}</Project>
-      <Name>engine.Common</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\engine\engine.Winforms\engine.Winforms.csproj">
-      <Project>{c031d3fa-2ec9-423a-a04d-3b176c141577}</Project>
-      <Name>engine.Winforms</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\floaty.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\bomb.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\chest.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\diver.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\duck.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\rov.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\rowboat.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\sailboat.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\bluebase.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\redbase.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\bluepiece.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\redpiece.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\submarine.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\shark.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\turtle.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\squid.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\border.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\waves1.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\waves2.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\waves3.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\island.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\ironclad.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\edge.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\scroll.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\scrolllong.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\lost.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\win.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="media\title.png" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>

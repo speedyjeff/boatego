@@ -1,5 +1,4 @@
-﻿using BoatEgo.Properties;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,21 +25,21 @@ namespace BoatEgo
                 }
             }
 
-            var streams = engine.Common.Embedded.LoadResource<byte[]>(System.Reflection.Assembly.GetExecutingAssembly());
+            var streams = engine.Winforms.Resources.Load(System.Reflection.Assembly.GetExecutingAssembly(), extension: ".json");
 
             // load the placement map from disk
             if (File.Exists(PlacementMatrixPath))
             {
                 // load from file
                 var json = File.ReadAllText(PlacementMatrixPath);
-                PlacementMatrix = Newtonsoft.Json.JsonConvert.DeserializeObject<int[][]>(json);
+                PlacementMatrix = System.Text.Json.JsonSerializer.Deserialize<int[][]>(json);
             }
 
             // or from stream
             else if (streams != null && streams.TryGetValue("computer", out byte[] data))
             {
                 var json = System.Text.Encoding.Default.GetString(data);
-                PlacementMatrix = Newtonsoft.Json.JsonConvert.DeserializeObject<int[][]>(json);
+                PlacementMatrix = System.Text.Json.JsonSerializer.Deserialize<int[][]>(json);
             }
 
             // or create it
@@ -309,7 +308,7 @@ namespace BoatEgo
             }
 
             // serialize to disk
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(PlacementMatrix);
+            var json = System.Text.Json.JsonSerializer.Serialize(PlacementMatrix);
             File.WriteAllText(PlacementMatrixPath, json);
         }
 
